@@ -3,13 +3,17 @@ package com.example.drawingapp
 import android.app.Dialog
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageButton
+import androidx.core.content.ContextCompat
+import androidx.core.view.get
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.example.drawingapp.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
-    private val binding : ActivityMainBinding by viewBinding()
+    private val binding: ActivityMainBinding by viewBinding()
+    private var mImageButtonCurrentPaint: ImageButton? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,7 +26,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun brushSizeChooserDialog(){
+    private fun brushSizeChooserDialog() {
         val brushDialog = Dialog(this)
         val smallBtn: ImageButton = brushDialog.findViewById(R.id.ib_small_brush)
         val mediumBtn: ImageButton = brushDialog.findViewById(R.id.ib_medium_brush)
@@ -43,5 +47,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         brushDialog.show()
+    }
+
+    fun paintClicked(view: View) {
+        if (view != mImageButtonCurrentPaint) {
+            val imageButton = view as ImageButton
+            val colorTag = imageButton.tag.toString()
+            binding.drawingView.setColor(colorTag)
+            imageButton.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this,
+                    R.drawable.pallet_selected
+                )
+            )
+            mImageButtonCurrentPaint?.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this,
+                    R.drawable.pallet_normal
+                )
+            )
+            mImageButtonCurrentPaint = view
+        }
     }
 }
