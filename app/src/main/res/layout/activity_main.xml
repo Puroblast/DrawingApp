@@ -138,6 +138,23 @@
 
 
         <ImageButton
+            android:id="@+id/ib_backBtn"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_margin="5dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/back" />
+
+
+        <ImageButton
+            android:id="@+id/ib_nextBtn"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_margin="5dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/next" />
+
+        <ImageButton
             android:id="@+id/ib_imageLoader"
             android:layout_width="50dp"
             android:layout_height="50dp"

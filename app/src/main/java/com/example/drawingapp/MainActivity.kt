@@ -20,14 +20,12 @@ class MainActivity : AppCompatActivity() {
 
     private val binding: ActivityMainBinding by viewBinding()
     private var mImageButtonCurrentPaint: ImageButton? = null
-
     private val openGalleryLauncher: ActivityResultLauncher<Intent> =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK && result.data != null) {
                 binding.ivBackground.setImageURI(result.data?.data)
             }
         }
-
     private val externalStorageResultLauncher: ActivityResultLauncher<String> =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -50,9 +48,14 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         askForPermissions()
         binding.drawingView.setSizeForBrush(20.toFloat())
-
         binding.ibBrush.setOnClickListener {
             brushSizeChooserDialog()
+        }
+        binding.ibBackBtn.setOnClickListener {
+            binding.drawingView.onClickUndo()
+        }
+        binding.ibNextBtn.setOnClickListener {
+            binding.drawingView.onClickRedo()
         }
 
     }
