@@ -1,12 +1,18 @@
 package com.example.drawingapp
 
+import android.Manifest
+import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.View
 import android.widget.ImageButton
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.core.view.get
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.example.drawingapp.databinding.ActivityMainBinding
 
@@ -15,9 +21,34 @@ class MainActivity : AppCompatActivity() {
     private val binding: ActivityMainBinding by viewBinding()
     private var mImageButtonCurrentPaint: ImageButton? = null
 
+    private val openGalleryLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK && result.data != null) {
+                binding.ivBackground.setImageURI(result.data?.data)
+            }
+        }
+
+    private val externalStorageResultLauncher: ActivityResultLauncher<String> =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                Toast.makeText(this, "Permission for external storage granted", Toast.LENGTH_LONG)
+                    .show()
+
+                val pickIntent =
+                    Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                openGalleryLauncher.launch(pickIntent)
+
+            } else {
+                Toast.makeText(this, "Permission for external storage denied", Toast.LENGTH_LONG)
+                    .show()
+            }
+        }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        askForPermissions()
         binding.drawingView.setSizeForBrush(20.toFloat())
 
         binding.ibBrush.setOnClickListener {
@@ -68,5 +99,31 @@ class MainActivity : AppCompatActivity() {
             )
             mImageButtonCurrentPaint = view
         }
+    }
+
+    private fun askForPermissions() {
+
+
+        binding.ibImageLoader.setOnClickListener {
+            if (shouldShowRequestPermissionRationale(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+            ) {
+                showRationaleDialog(
+                    "Drawing app requires external storage access",
+                    "You cannot change the background because External storage access is denied"
+                )
+            } else {
+                externalStorageResultLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+    }
+
+    private fun showRationaleDialog(title: String, message: String) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle(title).setMessage(message).setPositiveButton("Cancel") { dialog, _ ->
+            dialog.dismiss()
+        }
+        builder.create().show()
     }
 }
