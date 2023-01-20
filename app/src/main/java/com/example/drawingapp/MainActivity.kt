@@ -4,6 +4,10 @@ import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
@@ -13,8 +17,15 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.example.drawingapp.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
 
@@ -46,7 +57,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        askForPermissions()
+        binding.ibImageLoader.setOnClickListener {
+            askForPermissions()
+        }
         binding.drawingView.setSizeForBrush(20.toFloat())
         binding.ibBrush.setOnClickListener {
             brushSizeChooserDialog()
@@ -57,7 +70,24 @@ class MainActivity : AppCompatActivity() {
         binding.ibNextBtn.setOnClickListener {
             binding.drawingView.onClickRedo()
         }
+        binding.ibStoreImage.setOnClickListener {
+            if (isWriteStorageAllowed()) {
+                lifecycleScope.launch{
+                    val bitmap = getBitmapFromView(binding.flDrawingViewContainer)
+                    saveBitmapFile(bitmap)
+                }
+            } else {
+                askForPermissions()
+            }
+        }
 
+    }
+
+    private fun isWriteStorageAllowed(): Boolean {
+        val result =
+            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+        return result == PackageManager.PERMISSION_GRANTED
     }
 
     private fun brushSizeChooserDialog() {
@@ -106,20 +136,76 @@ class MainActivity : AppCompatActivity() {
 
     private fun askForPermissions() {
 
+        if (shouldShowRequestPermissionRationale(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+        ) {
+            showRationaleDialog(
+                "Drawing app requires external storage access",
+                "External storage access is denied"
+            )
+        } else {
+            externalStorageResultLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+    }
 
-        binding.ibImageLoader.setOnClickListener {
-            if (shouldShowRequestPermissionRationale(
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
-            ) {
-                showRationaleDialog(
-                    "Drawing app requires external storage access",
-                    "You cannot change the background because External storage access is denied"
-                )
-            } else {
-                externalStorageResultLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    private fun getBitmapFromView(view: View): Bitmap {
+        val returnedBitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(returnedBitmap)
+        val bgDrawable = view.background
+        if (bgDrawable != null) {
+            bgDrawable.draw(canvas)
+        } else {
+            canvas.drawColor(Color.WHITE)
+        }
+
+        view.draw(canvas)
+
+        return returnedBitmap
+    }
+
+    private suspend fun saveBitmapFile(mBitmap: Bitmap?): String {
+        var result = ""
+        withContext(Dispatchers.IO) {
+            if (mBitmap != null) {
+                try {
+                    val bytes = ByteArrayOutputStream()
+                    mBitmap.compress(Bitmap.CompressFormat.PNG, 90, bytes)
+
+                    val f =
+                        File(
+                            externalCacheDir?.absoluteFile.toString()
+                                    + File.separator + "DrawingApp_" + System.currentTimeMillis() / 1000 + ".png"
+                        )
+
+                    val fo = FileOutputStream(f)
+                    fo.write(bytes.toByteArray())
+                    fo.close()
+
+                    result = f.absolutePath
+
+                    runOnUiThread {
+                        if (result.isNotEmpty()) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "File saved at $result",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "File didn't saved at $result",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    result = ""
+                    e.printStackTrace()
+                }
             }
         }
+        return result
     }
 
     private fun showRationaleDialog(title: String, message: String) {
