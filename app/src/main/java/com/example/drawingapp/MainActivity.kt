@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity() {
 
     private val binding: ActivityMainBinding by viewBinding()
     private var mImageButtonCurrentPaint: ImageButton? = null
+    var customProgressDialog : Dialog? = null
     private val openGalleryLauncher: ActivityResultLauncher<Intent> =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK && result.data != null) {
@@ -72,6 +73,7 @@ class MainActivity : AppCompatActivity() {
         }
         binding.ibStoreImage.setOnClickListener {
             if (isWriteStorageAllowed()) {
+                showProgressDialog()
                 lifecycleScope.launch{
                     val bitmap = getBitmapFromView(binding.flDrawingViewContainer)
                     saveBitmapFile(bitmap)
@@ -185,6 +187,7 @@ class MainActivity : AppCompatActivity() {
                     result = f.absolutePath
 
                     runOnUiThread {
+                        cancelProgressDialog()
                         if (result.isNotEmpty()) {
                             Toast.makeText(
                                 this@MainActivity,
@@ -215,4 +218,18 @@ class MainActivity : AppCompatActivity() {
         }
         builder.create().show()
     }
+
+    private fun showProgressDialog() {
+        customProgressDialog = Dialog(this@MainActivity)
+        customProgressDialog?.setContentView(R.layout.dialog_custom_progress)
+        customProgressDialog?.show()
+    }
+
+    private fun cancelProgressDialog() {
+        if(customProgressDialog != null) {
+            customProgressDialog?.dismiss()
+            customProgressDialog = null
+        }
+    }
+
 }
